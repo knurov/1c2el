@@ -1,6 +1,6 @@
 database:
   host: localhost
-  port: 1521
+  port: 5432
 #
 #
 #

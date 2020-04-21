@@ -7,7 +7,9 @@ import (
 	"path/filepath"
 
 	// "log"
+	yamlconvert "github.com/ghodss/yaml"
 	log "github.com/sirupsen/logrus"
+	gojsonschema "github.com/xeipuuv/gojsonschema"
 	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 	"gopkg.in/yaml.v2"
 )
@@ -27,6 +29,23 @@ func main() {
 			Port int    `yaml:"port"`
 		} `yaml:"database"`
 	}
+	schema := gojsonschema.NewStringLoader(`
+	{
+		"required": [ "database" ],
+		"properties": {
+			"database": {
+				"type": "object",
+				"required": [ "host", "port" ],
+				"host": {
+					"type": "string"
+				},
+				"port": {
+					"type": "int"
+				}
+			}
+		}
+	} 
+	`)
 
 	var config Config
 
@@ -35,6 +54,20 @@ func main() {
 		if confErr != nil {
 			log.Fatal(confErr)
 		}
+
+		configJSON, convertErr := yamlconvert.YAMLToJSON(configFile)
+		if convertErr != nil {
+			log.Fatal(convertErr)
+		}
+		validationResult, validationError := gojsonschema.Validate(schema, gojsonschema.NewBytesLoader(configJSON))
+		if validationError != nil {
+			log.Fatal(validationError)
+		}
+
+		if !validationResult.Valid() {
+			log.Fatal(validationResult.Errors())
+		}
+
 		yamlErr := yaml.Unmarshal(configFile, &config)
 		if yamlErr != nil {
 			log.Fatal(yamlErr)
