@@ -8,59 +8,49 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 
-	// "log"
-	"github.com/antchfx/xmlquery"
 	yamlconvert "github.com/ghodss/yaml"
 	"github.com/jackc/pgx/v4"
 	log "github.com/sirupsen/logrus"
 	gojsonschema "github.com/xeipuuv/gojsonschema"
 	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 	"gopkg.in/yaml.v2"
-	"launchpad.net/xmlpath"
 )
 
-func fatal(err error) {
+//LogFatal Output fatal error to log
+func LogFatal(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-func xmlparseOld() {
-	file, err := os.Open("exaples/data16.04.2020 10_15_59.xml")
-	fatal(err)
-	doc, err := xmlquery.Parse(file)
+//LogError Otput error to log
+func LogError(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	list := xmlquery.Find(doc, "//s")
-	fmt.Println(list)
-
 }
 
-func xmlparseXmlpath() {
-	file, err := os.Open("exaples/data16.04.2020 10_15_59.xml")
-	defer file.Close()
-	fatal(err)
-
-	doc, err := xmlpath.Parse(file)
-	fatal(err)
-
-	path := xmlpath.MustCompile("/ТР/ОписаниеТрансформатора")
-	// if list, ok := path.String(doc); ok {
-	// 	fmt.Println(list)
-	// }
-	// fatal(err)
-	// range item := path.Iter(doc) {
-	items := path.Iter(doc)
-	for items.Next() {
-		value := items.Node()
-		fmt.Println(value.String())
+// func parseTLO10(fullName string)
+// https://yourbasic.org/golang/regexp-cheat-sheet/
+func parseFullName(fullName string) {
+	isTlo10, err := regexp.Compile("^ТЛО-10")
+	// 'ТЛО-10_М1ACE-0.2SFS7/0.5FS7/10P10-10/10/40-150(300)-150(300)-300/5 У2 б 31.5кА'
+	// tlo10, err := regexp.Compile("^(ТЛО-10)_(.+)-(.+)/(.+)/(.+)/(.+)/(.+)/(.+) (.+) (.+) (.+)")
+	tlo10, err := regexp.Compile(`(?P<short>.+?)_(?P<prop>.+?)-`)
+	LogFatal(err)
+	if isTlo10.MatchString(fullName) {
+		result := tlo10.FindStringSubmatch(fullName)
+		fmt.Println(tlo10.SubexpNames())
+		for _, item := range result {
+			fmt.Println(item)
+		}
+		fmt.Println(result)
 	}
 }
 
-func xmlparse() {
+func xmlparse(fileName string) {
 
 	type TRParams struct {
 		Name string `xml:"Название,attr"`
@@ -77,14 +67,29 @@ func xmlparse() {
 		Transfonmer xml.Name        `xml:"ТР"`
 		Description []TRDescription `xml:"ОписаниеТрансформатора"`
 	}
-	file, err := os.Open("exaples/data16.04.2020 10_15_59.xml")
+	file, err := os.Open(fileName)
 	defer file.Close()
-	fatal(err)
+	LogFatal(err)
 	result := TR{}
 	xmlData, err := ioutil.ReadAll(file)
-	fatal(err)
+	LogFatal(err)
 	err = xml.Unmarshal(xmlData, &result)
-	fmt.Print(result)
+
+	for _, item := range result.Description {
+		// fmt.Printf("%v - Serial number %v\n", item.Params.Name, item.Number)
+		parseFullName(item.Params.Name)
+	}
+}
+
+func getFiles(path string) {
+	files, err := ioutil.ReadDir(path)
+	LogFatal(err)
+	for _, item := range files {
+		if !item.IsDir() {
+			xmlparse(filepath.Join(path, item.Name()))
+		}
+
+	}
 }
 
 func db() {
@@ -100,17 +105,33 @@ func db() {
 	// postgresql://host1:123,host2:456/somedb?target_session_attrs=any&application_name=myapp
 
 	db, err := pgx.Connect(context.Background(), "postgresql://electrolab:electrolab@localhost/electrolab")
-	fatal(err)
-
-	res := db.Ping(context.Background())
-	fmt.Println(res)
 	defer db.Close(context.Background())
+	LogFatal(err)
+
+	type Transformer struct {
+		ID       int    `json:"id"`
+		FullName string `json:"fullName"`
+		Type     string `json:"type"`
+	}
+
+	trans := Transformer{FullName: "tlo1", Type: "type1"}
+
+	row := db.QueryRow(context.Background(),
+		"insert into transformer (fullName, type) values($1, $2) RETURNING id ",
+		trans.FullName, trans.Type)
+
+	var id int
+	LogError(row.Scan(&id))
+	fmt.Println(id)
+
+	err = db.Ping(context.Background())
+	LogError(err)
 }
 
 func main() {
 	var msg string
-	configName := *(flag.String("config", "./config.yaml", "Set config file path"))
-	logpath := *(flag.String("log", "", "Set log path"))
+	configName := flag.String("config", "./config.yaml", "Set config file path")
+	logpath := flag.String("log", "", "Set log path")
 	flag.StringVar(&msg, "message", "hello!", "just message")
 	flag.Parse()
 	fmt.Printf("Begin! %v\n", configName)
@@ -143,27 +164,27 @@ func main() {
 
 	var config Config
 
-	if configName != "" {
-		configFile, err := ioutil.ReadFile(configName)
-		fatal(err)
+	if *configName != "" {
+		configFile, err := ioutil.ReadFile(*configName)
+		LogFatal(err)
 		configJSON, err := yamlconvert.YAMLToJSON(configFile)
-		fatal(err)
+		LogFatal(err)
 		validationResult, err := gojsonschema.Validate(schema, gojsonschema.NewBytesLoader(configJSON))
-		fatal(err)
+		LogFatal(err)
 
 		if !validationResult.Valid() {
 			log.Fatal(validationResult.Errors())
 		}
 
 		err = yaml.Unmarshal(configFile, &config)
-		fatal(err)
+		LogFatal(err)
 		fmt.Printf("Database.Host: %#v\n", config.Database.Host)
 
 	}
 
-	if logpath != "" {
+	if *logpath != "" {
 		logoutput := &lumberjack.Logger{
-			Filename: filepath.Join(logpath, "1c2el.log"),
+			Filename: filepath.Join(*logpath, "1c2el.log"),
 			MaxSize:  100, // megabytes
 			// MaxBackups: 15,
 			MaxAge:   15,   //days
@@ -172,10 +193,10 @@ func main() {
 		log.SetOutput(logoutput)
 
 	}
-	log.SetLevel(log.TraceLevel)
+	log.SetLevel(log.ErrorLevel)
 	log.Errorf("Err msq %v", msg)
 	log.Tracef("Trace val %v", log.TraceLevel)
+	getFiles("./examples")
+	// xmlparse()
 	db()
-	xmlparse()
-	log.Println("bue!")
 }
