@@ -10,27 +10,12 @@ import (
 	"path/filepath"
 	"regexp"
 
-	yamlconvert "github.com/ghodss/yaml"
 	"github.com/jackc/pgx/v4"
 	log "github.com/sirupsen/logrus"
-	gojsonschema "github.com/xeipuuv/gojsonschema"
 	lumberjack "gopkg.in/natefinch/lumberjack.v2"
-	"gopkg.in/yaml.v2"
+	"knurov.ru/el/1c2el/config"
+	"knurov.ru/el/1c2el/helper"
 )
-
-//LogFatal Output fatal error to log
-func LogFatal(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-//LogError Otput error to log
-func LogError(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
-}
 
 // func parseTLO10(fullName string)
 // https://yourbasic.org/golang/regexp-cheat-sheet/
@@ -39,7 +24,7 @@ func parseFullName(fullName string) {
 	// 'ТЛО-10_М1ACE-0.2SFS7/0.5FS7/10P10-10/10/40-150(300)-150(300)-300/5 У2 б 31.5кА'
 	// tlo10, err := regexp.Compile("^(ТЛО-10)_(.+)-(.+)/(.+)/(.+)/(.+)/(.+)/(.+) (.+) (.+) (.+)")
 	tlo10, err := regexp.Compile(`(?P<short>.+?)_(?P<prop>.+?)-`)
-	LogFatal(err)
+	helper.LogFatal(err)
 	if isTlo10.MatchString(fullName) {
 		result := tlo10.FindStringSubmatch(fullName)
 		fmt.Println(tlo10.SubexpNames())
@@ -69,10 +54,10 @@ func xmlparse(fileName string) {
 	}
 	file, err := os.Open(fileName)
 	defer file.Close()
-	LogFatal(err)
+	helper.LogFatal(err)
 	result := TR{}
 	xmlData, err := ioutil.ReadAll(file)
-	LogFatal(err)
+	helper.LogFatal(err)
 	err = xml.Unmarshal(xmlData, &result)
 
 	for _, item := range result.Description {
@@ -83,7 +68,7 @@ func xmlparse(fileName string) {
 
 func getFiles(path string) {
 	files, err := ioutil.ReadDir(path)
-	LogFatal(err)
+	helper.LogFatal(err)
 	for _, item := range files {
 		if !item.IsDir() {
 			xmlparse(filepath.Join(path, item.Name()))
@@ -106,7 +91,7 @@ func db() {
 
 	db, err := pgx.Connect(context.Background(), "postgresql://electrolab:electrolab@localhost/electrolab")
 	defer db.Close(context.Background())
-	LogFatal(err)
+	helper.LogFatal(err)
 
 	type Transformer struct {
 		ID       int    `json:"id"`
@@ -121,11 +106,11 @@ func db() {
 		trans.FullName, trans.Type)
 
 	var id int
-	LogError(row.Scan(&id))
+	helper.LogError(row.Scan(&id))
 	fmt.Println(id)
 
 	err = db.Ping(context.Background())
-	LogError(err)
+	helper.LogError(err)
 }
 
 func main() {
@@ -136,51 +121,6 @@ func main() {
 	flag.Parse()
 	fmt.Printf("Begin! %v\n", configName)
 	fmt.Printf("%s end\n", msg)
-
-	type Config struct {
-		Database struct {
-			Host string `yaml:"host"`
-			Port int    `yaml:"port"`
-		} `yaml:"database"`
-	}
-	// https://json-schema.org/learn/miscellaneous-examples.html
-	schema := gojsonschema.NewStringLoader(`
-	{
-		"required": [ "database" ],
-		"properties": {
-			"database": {
-				"type": "object",
-				"required": [ "host", "port" ],
-				"host": {
-					"type": "string"
-				},
-				"port": {
-					"type": "int"
-				}
-			}
-		}
-	} 
-	`)
-
-	var config Config
-
-	if *configName != "" {
-		configFile, err := ioutil.ReadFile(*configName)
-		LogFatal(err)
-		configJSON, err := yamlconvert.YAMLToJSON(configFile)
-		LogFatal(err)
-		validationResult, err := gojsonschema.Validate(schema, gojsonschema.NewBytesLoader(configJSON))
-		LogFatal(err)
-
-		if !validationResult.Valid() {
-			log.Fatal(validationResult.Errors())
-		}
-
-		err = yaml.Unmarshal(configFile, &config)
-		LogFatal(err)
-		fmt.Printf("Database.Host: %#v\n", config.Database.Host)
-
-	}
 
 	if *logpath != "" {
 		logoutput := &lumberjack.Logger{
@@ -196,6 +136,10 @@ func main() {
 	log.SetLevel(log.ErrorLevel)
 	log.Errorf("Err msq %v", msg)
 	log.Tracef("Trace val %v", log.TraceLevel)
+	conf := config.Config{}
+	conf.NewConfig("./config.yaml")
+	fmt.Println(conf)
+	//  config.Config("./config.yaml")
 	getFiles("./examples")
 	// xmlparse()
 	db()
