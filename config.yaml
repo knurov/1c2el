@@ -6,11 +6,9 @@ database:
   passwd: electrolab
 files:
   src: ./examples
-  dst:
-  filename: .*\.xml
+  done:
+  error:
+  nameTemplate: .*\.xml
 log:
   level: 
   file:
-
-#
-#
