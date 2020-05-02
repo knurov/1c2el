@@ -4,11 +4,10 @@ import (
 	"io/ioutil"
 	"regexp"
 
-	log "github.com/sirupsen/logrus"
+	"knurov.ru/el/1c2el/helper"
 
 	yamlconvert "github.com/ghodss/yaml"
 	gojsonschema "github.com/xeipuuv/gojsonschema"
-	"knurov.ru/el/1c2el/helper"
 
 	"gopkg.in/yaml.v2"
 )
@@ -33,7 +32,7 @@ type Config struct {
 }
 
 //NewConfig -  КОнструктор
-func (config *Config) NewConfig(fileName string) {
+func (config *Config) NewConfig(log *helper.Loger, fileName string) {
 	// https://json-schema.org/learn/miscellaneous-examples.html
 	schema := gojsonschema.NewStringLoader(`
 		{
@@ -60,25 +59,25 @@ func (config *Config) NewConfig(fileName string) {
 	`)
 
 	configFile, err := ioutil.ReadFile(fileName)
-	helper.LogFatal(err)
+	log.Fatal(err)
 	configJSON, err := yamlconvert.YAMLToJSON(configFile)
-	helper.LogFatal(err)
+	log.Fatal(err)
 	validationResult, err := gojsonschema.Validate(schema, gojsonschema.NewBytesLoader(configJSON))
-	helper.LogFatal("Validadion error: %v", err)
+	log.Fatal("Validadion error: %v", err)
 
 	if !validationResult.Valid() {
-		helper.LogFatal(validationResult.Errors())
+		log.Fatal(validationResult.Errors())
 	}
 
 	config.Database.Port = 5432
 	config.Database.Host = "localhost"
-	config.Log.Level = log.ErrorLevel.String()
+	// config.Log.Level = log.ErrorLevel.String()
 	config.Files.NameTemplate = ".*\\.xml"
 
 	err = yaml.Unmarshal(configFile, &config)
-	helper.LogFatal(err)
+	log.Fatal(err)
 
 	config.Files.NameRegexp, err = regexp.Compile(config.Files.NameTemplate)
-	helper.LogFatal(err)
+	log.Fatal(err)
 
 }
