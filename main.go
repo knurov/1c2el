@@ -123,11 +123,8 @@ func main() {
 	fmt.Printf("%s end\n", msg)
 
 	hlp := helper.NewHelper("", logrus.ErrorLevel)
-	conf := config.Config{}
-	conf.NewConfig(hlp.Log, "./config.yaml")
+	conf := config.NewConfig(hlp.Log, "./config.yaml")
 	fmt.Println(conf)
-	//  config.Config("./config.yaml")
 	getFiles(hlp.Log, "./examples")
-	// xmlparse()
 	db(hlp.Log)
 }
