@@ -10,5 +10,5 @@ files:
   error:
   nameTemplate: .*\.xml
 log:
-  level: 
+  level: Trace
   file:
