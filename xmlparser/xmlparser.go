@@ -14,6 +14,7 @@ import (
 // func parseTLO10(fullName string)
 // https://yourbasic.org/golang/regexp-cheat-sheet/
 func parseFullName(hlp *helper.Helper, fullName string) {
+
 	isTlo10, err := regexp.Compile("^ТЛО-10")
 	// 'ТЛО-10_М1ACE-0.2SFS7/0.5FS7/10P10-10/10/40-150(300)-150(300)-300/5 У2 б 31.5кА'
 	// tlo10, err := regexp.Compile("^(ТЛО-10)_(.+)-(.+)/(.+)/(.+)/(.+)/(.+)/(.+) (.+) (.+) (.+)")
@@ -22,10 +23,6 @@ func parseFullName(hlp *helper.Helper, fullName string) {
 	if isTlo10.MatchString(fullName) {
 		result := tlo10.FindStringSubmatch(fullName)
 		fmt.Println(tlo10.SubexpNames())
-		// for _, item := range result {
-		// 	fmt.Println(item)
-		// }
-		// fmt.Println(result)
 		if len(result) == 3 {
 			db.Transformer(hlp, result[1], result[2])
 		} else {

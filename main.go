@@ -16,7 +16,7 @@ func readFiles(hlp *helper.Helper) {
 	hlp.Log.Fatal("On read the dir %v", err)
 	for _, item := range files {
 		if !item.IsDir() {
-			hlp.Log.Trace(fmt.Sprintf("Processing file %v", item.Name()))
+			hlp.Log.Debug(fmt.Sprintf("Processing file %v", item.Name()))
 			xmlparser.XMLParse(hlp, filepath.Join(hlp.Conf.Files.Src, item.Name()))
 		}
 

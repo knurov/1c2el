@@ -93,18 +93,17 @@ func (log Loger) Warning(args ...interface{}) {
 	log.msg(logrus.WarnLevel, args...)
 }
 
-//Debug Otput warning to log
-func (log Loger) Debug(args ...interface{}) {
-	log.msg(logrus.DebugLevel, args...)
+//Debug Otput debug to log
+func (log Loger) Debug(msg string, args ...interface{}) {
+	logrus.Debugf(msg, args...)
 }
 
 //Info Otput info to log
-func (log Loger) Info(args ...interface{}) {
-	log.msg(logrus.InfoLevel, args...)
+func (log Loger) Info(msg string, args ...interface{}) {
+	logrus.Infof(msg, args...)
 }
 
 //Trace Otput Trace to log
-func (log Loger) Trace(args ...interface{}) {
-	log.msg(logrus.TraceLevel, args...)
-	// logrus.Tracef(args...)
+func (log Loger) Trace(msg string, args ...interface{}) {
+	logrus.Tracef(msg, args...)
 }

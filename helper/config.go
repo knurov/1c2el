@@ -6,8 +6,6 @@ import (
 	"io/ioutil"
 	"regexp"
 
-	// "knurov.ru/el/1c2el/helper"
-
 	yamlconvert "github.com/ghodss/yaml"
 	"github.com/jackc/pgx/v4/pgxpool"
 	logrus "github.com/sirupsen/logrus"
@@ -37,6 +35,28 @@ type Config struct {
 		Level string `yaml:"level"`
 		File  string `yaml:"file"`
 	} `yaml:"log"`
+
+	//PaseRules rule parsing rule
+	Rules []struct {
+		Name         string `yaml:"name"`
+		RegexpString string `yaml:"regexp"`
+		Regexp       *regexp.Regexp
+		Transformer  []struct {
+			Field        string `yaml:"field"`
+			Position     uint8  `yaml:"position"`
+			RegexpString string `yaml:"rgexp"`
+			Value        string `yaml:"value"`
+			Regexp       *regexp.Regexp
+		} `yaml:"trans"`
+		Coil []struct {
+			Field        string `yaml:"field"`
+			Position     uint8  `yaml:"position"`
+			RegexpString string `yaml:"rgexp"`
+			Value        string `yaml:"value"`
+			Regexp       *regexp.Regexp
+		} `yaml:"trans"`
+	} `yaml:"rules"`
+
 	Loger *Loger
 }
 
