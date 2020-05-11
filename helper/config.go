@@ -38,23 +38,23 @@ type Config struct {
 
 	//PaseRules rule parsing rule
 	Rules []struct {
-		Name         string `yaml:"name"`
-		RegexpString string `yaml:"regexp"`
-		Regexp       *regexp.Regexp
-		Transformer  []struct {
-			Field        string `yaml:"field"`
-			Position     uint8  `yaml:"position"`
-			RegexpString string `yaml:"rgexp"`
-			Value        string `yaml:"value"`
-			Regexp       *regexp.Regexp
-		} `yaml:"trans"`
+		Name           string `yaml:"name"`
+		Regexp         string `yaml:"regexp"`
+		RegexpCompiled *regexp.Regexp
+		Transformer    []struct {
+			Field          string `yaml:"field"`
+			Position       uint8  `yaml:"position"`
+			Regexp         string `yaml:"regexp"`
+			Value          string `yaml:"value"`
+			RegexpCompiled *regexp.Regexp
+		} `yaml:"transformer"`
 		Coil []struct {
-			Field        string `yaml:"field"`
-			Position     uint8  `yaml:"position"`
-			RegexpString string `yaml:"rgexp"`
-			Value        string `yaml:"value"`
-			Regexp       *regexp.Regexp
-		} `yaml:"trans"`
+			Field          string `yaml:"field"`
+			Position       uint8  `yaml:"position"`
+			Regexp         string `yaml:"regexp"`
+			Value          string `yaml:"value"`
+			RegexpCompiled *regexp.Regexp
+		} `yaml:"coil"`
 	} `yaml:"rules"`
 
 	Loger *Loger
@@ -115,7 +115,7 @@ func (config *Config) setDefaults() {
 func (config *Config) setValues() {
 	var err error
 	config.Files.NameRegexp, err = regexp.Compile(config.Files.NameTemplate)
-	config.Loger.Fatal("On Compile regexp %v", err)
+	config.Loger.Fatal("On Compile FIleName regexp %v", err)
 	level, err := logrus.ParseLevel(config.Log.Level)
 	config.Loger.Fatal("On parse Log Level %v", err)
 	config.Loger.Init(config.Log.File, level)
@@ -131,6 +131,11 @@ func (config *Config) setValues() {
 	config.Loger.Fatal("On create config url - %v", err)
 	config.Database.Pool, err = pgxpool.ConnectConfig(context.Background(), dbConfig)
 	config.Loger.Fatal("On connect to db - %v", err)
+
+	for inex, item := range config.Rules {
+		config.Rules[inex].RegexpCompiled, err = regexp.Compile(item.Regexp)
+		config.Loger.Fatal("On Compile Transformer regexp %v", err)
+	}
 }
 
 //init -  КОнструктор
@@ -141,7 +146,7 @@ func (config *Config) init(log *Loger, fileName string) {
 	config.validate(configFile)
 	config.setDefaults()
 	err = yaml.Unmarshal(configFile, &config)
-	config.Loger.Fatal("On parse "+fileName+"yaml v%", err)
+	config.Loger.Fatal("On parse "+fileName+" v%", err)
 	config.setValues()
 }
 

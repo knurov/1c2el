@@ -2,33 +2,35 @@ package xmlparser
 
 import (
 	"encoding/xml"
-	"fmt"
 	"io/ioutil"
 	"os"
-	"regexp"
 
 	"knurov.ru/el/1c2el/db"
 	"knurov.ru/el/1c2el/helper"
 )
 
-// func parseTLO10(fullName string)
-// https://yourbasic.org/golang/regexp-cheat-sheet/
-func parseFullName(hlp *helper.Helper, fullName string) {
-
-	isTlo10, err := regexp.Compile("^ТЛО-10")
+func parseByRule(hlp *helper.Helper, fullName string) {
+	// https://yourbasic.org/golang/regexp-cheat-sheet/
 	// 'ТЛО-10_М1ACE-0.2SFS7/0.5FS7/10P10-10/10/40-150(300)-150(300)-300/5 У2 б 31.5кА'
 	// tlo10, err := regexp.Compile("^(ТЛО-10)_(.+)-(.+)/(.+)/(.+)/(.+)/(.+)/(.+) (.+) (.+) (.+)")
-	tlo10, err := regexp.Compile(`(?P<short>.+?)_(?P<prop>.+?)-`)
-	hlp.Log.Fatal(err)
-	if isTlo10.MatchString(fullName) {
-		result := tlo10.FindStringSubmatch(fullName)
-		fmt.Println(tlo10.SubexpNames())
-		if len(result) == 3 {
-			db.Transformer(hlp, result[1], result[2])
+
+	for _, rule := range hlp.Conf.Rules {
+
+		if rule.RegexpCompiled != nil && rule.RegexpCompiled.MatchString(fullName) {
+			result := rule.RegexpCompiled.FindStringSubmatch(fullName)
+
+			transformer := make(map[string]string)
+			for _, transformerField := range rule.Transformer {
+				transformer[transformerField.Field] = result[transformerField.Position]
+			}
+
+			db.Transformer(hlp, transformer)
 		} else {
-			hlp.Log.Trace("No result")
+			hlp.Log.Trace("Skip rule %v for %v", rule.Name, fullName)
 		}
+
 	}
+
 }
 
 //XMLParse parse specific xml
@@ -59,6 +61,7 @@ func XMLParse(hlp *helper.Helper, fileName string) {
 
 	for _, item := range result.Description {
 		// fmt.Printf("%v - Serial number %v\n", item.Params.Name, item.Number)
-		parseFullName(hlp, item.Params.Name)
+		hlp.Log.Trace("Process transformer %v", item.Params.Name)
+		parseByRule(hlp, item.Params.Name)
 	}
 }

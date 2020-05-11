@@ -12,3 +12,15 @@ files:
 log:
   level: Trace
   file:
+# https://yourbasic.org/golang/regexp-cheat-sheet/
+rules:
+  - name: "Общее правило"
+    regexp: "(?P<short>.+?)[_\\s](?P<prop>.+?)[-/]"
+    transformer:
+      - field: fullName
+        position: 1
+        # regexp: .*
+        # value: 10
+      - field: type
+        position: 2
+    coil: []
