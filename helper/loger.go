@@ -14,7 +14,6 @@ type Loger struct {
 
 //Destroy closing opened files, databases and etc
 func (log *Loger) Destroy() {
-	fmt.Println("Destroy loger!!!")
 }
 
 // NewLoger Create new loger

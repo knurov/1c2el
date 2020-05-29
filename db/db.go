@@ -2,13 +2,17 @@ package db
 
 import (
 	"context"
-	"fmt"
 
 	"knurov.ru/el/1c2el/helper"
 )
 
 //applyMap inser values
-func applyMap(hlp *helper.Helper, selectStatment string, insertStatment string, order []string, values map[string]string) (id uint32) {
+func execQueryByMap(hlp *helper.Helper, selectStatment string, insertStatment string, order []string, values map[string]string) (id uint32) {
+	if hlp.Conf.Database.DryRun {
+		hlp.Log.Trace("Dry run mode! Skip of persisting %#q", values)
+		return
+	}
+	hlp.Log.Trace("Persisting of values %#q", values)
 	connect, err := hlp.Conf.Database.Pool.Acquire(context.Background())
 	defer connect.Release()
 	hlp.Log.Fatal("On acquire pool connection %v", err)
@@ -39,40 +43,20 @@ func applyMap(hlp *helper.Helper, selectStatment string, insertStatment string, 
 
 }
 
+//SerialNumber add/update SerialNumber
+func SerialNumber(hlp *helper.Helper, values map[string]string) (id uint32) {
+	hlp.Log.Debug("on persisting of serial number %q", values["SerialNumber"])
+	selectStatment := "select id from sn where fullName = $1 and type = $2"
+	insertStatment := "insert into sn (fullName, type) values($1, $2) RETURNING id "
+	order := []string{"fullName", "type"}
+	return execQueryByMap(hlp, selectStatment, insertStatment, order, values)
+}
+
 //Transformer add/update transformer
 func Transformer(hlp *helper.Helper, values map[string]string) (id uint32) {
-	hlp.Log.Debug(fmt.Sprintf("on transformer %#v", values))
+	hlp.Log.Debug("on persisting of serial number %q", values["FullName"])
 	selectStatment := "select id from transformer where fullName = $1 and type = $2"
 	insertStatment := "insert into transformer (fullName, type) values($1, $2) RETURNING id "
 	order := []string{"fullName", "type"}
-	return applyMap(hlp, selectStatment, insertStatment, order, values)
-
-}
-
-//transformer add/update transformer
-func transformer(hlp *helper.Helper, fullName string, transType string) (id uint32) {
-	hlp.Log.Debug(fmt.Sprintf("on transformer %v %v", fullName, transType))
-	connect, err := hlp.Conf.Database.Pool.Acquire(context.Background())
-	defer connect.Release()
-	hlp.Log.Fatal("On acquire pool connection %v", err)
-
-	rows, err := connect.Query(context.Background(),
-		"select id from transformer where fullName = $1 and type = $2",
-		fullName, transType)
-	defer rows.Close()
-	hlp.Log.Error("On check transformer - %v", err)
-
-	for rows.Next() {
-		rows.Scan(&id)
-		hlp.Log.Trace("Found transformer %v", fullName)
-		return id
-	}
-
-	hlp.Log.Trace("Insert new transformer %v", fullName)
-	row := connect.QueryRow(context.Background(),
-		"insert into transformer (fullName, type) values($1, $2) RETURNING id ",
-		fullName, transType)
-
-	hlp.Log.Error(row.Scan(&id))
-	return id
+	return execQueryByMap(hlp, selectStatment, insertStatment, order, values)
 }

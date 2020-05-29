@@ -17,6 +17,7 @@ import (
 // Config - Содержит параметры приложения
 type Config struct {
 	Database struct {
+		DryRun bool   `yaml:"dryRun"`
 		Host   string `yaml:"host"`
 		Port   int    `yaml:"port"`
 		Db     string `yaml:"db"`
@@ -61,9 +62,9 @@ type Config struct {
 }
 
 //NewConfig -  КОнструктор
-func NewConfig(fileName string) (config *Config) {
+func NewConfig(fileName string, dryRun bool) (config *Config) {
 	config = new(Config)
-	config.init(NewLoger(), fileName)
+	config.init(NewLoger(), fileName, dryRun)
 	return config
 }
 
@@ -76,6 +77,9 @@ func (config *Config) validate(configFile []byte) {
 				"database": {
 					"type": "object",
 					"required": [ "host", "port" ],
+					"dryRun": {
+						"type": "boolean"
+					},	
 					"host": {
 						"type": "string"
 					},
@@ -109,11 +113,11 @@ func (config *Config) setDefaults() {
 	config.Database.Host = "localhost"
 	config.Log.Level = logrus.ErrorLevel.String()
 	config.Files.NameTemplate = ".*\\.xml"
-
 }
 
-func (config *Config) setValues() {
+func (config *Config) setValues(dryRun bool) {
 	var err error
+	config.Database.DryRun = config.Database.DryRun || dryRun
 	config.Files.NameRegexp, err = regexp.Compile(config.Files.NameTemplate)
 	config.Loger.Fatal("On Compile FIleName regexp %v", err)
 	level, err := logrus.ParseLevel(config.Log.Level)
@@ -139,7 +143,7 @@ func (config *Config) setValues() {
 }
 
 //init -  КОнструктор
-func (config *Config) init(log *Loger, fileName string) {
+func (config *Config) init(log *Loger, fileName string, dryRun bool) {
 	config.Loger = log
 	configFile, err := ioutil.ReadFile(fileName)
 	config.Loger.Fatal("On read config file: %v", err)
@@ -147,7 +151,7 @@ func (config *Config) init(log *Loger, fileName string) {
 	config.setDefaults()
 	err = yaml.Unmarshal(configFile, &config)
 	config.Loger.Fatal("On parse "+fileName+" v%", err)
-	config.setValues()
+	config.setValues(dryRun)
 }
 
 //Destroy Destroyng config (closing opened files, databases and etc)

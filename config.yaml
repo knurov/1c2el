@@ -1,4 +1,5 @@
 database:
+  # dryRun: true
   host: localhost
   port: 5432
   db: electrolab
@@ -6,7 +7,7 @@ database:
   passwd: electrolab
 files:
   src: ./examples
-  done:
+  # done: ./examples/done
   error:
   nameTemplate: .*\.xml
 log:

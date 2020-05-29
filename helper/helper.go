@@ -13,9 +13,9 @@ func (hlp *Helper) Destroy() {
 }
 
 //NewHelper Create new helper
-func NewHelper(configFile string) (helper *Helper) {
+func NewHelper(configFile string, dryRun bool) (helper *Helper) {
 	helper = new(Helper)
 	helper.Log = NewLoger()
-	helper.Conf = NewConfig(configFile)
+	helper.Conf = NewConfig(configFile, dryRun)
 	return helper
 }

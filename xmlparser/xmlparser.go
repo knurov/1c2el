@@ -2,8 +2,7 @@ package xmlparser
 
 import (
 	"encoding/xml"
-	"io/ioutil"
-	"os"
+	"fmt"
 
 	"knurov.ru/el/1c2el/db"
 	"knurov.ru/el/1c2el/helper"
@@ -34,7 +33,7 @@ func parseByRule(hlp *helper.Helper, fullName string) {
 }
 
 //XMLParse parse specific xml
-func XMLParse(hlp *helper.Helper, fileName string) {
+func XMLParse(hlp *helper.Helper, rawXML []byte) (err error) {
 
 	type TRParams struct {
 		Name string `xml:"Название,attr"`
@@ -51,17 +50,21 @@ func XMLParse(hlp *helper.Helper, fileName string) {
 		Transfonmer xml.Name        `xml:"ТР"`
 		Description []TRDescription `xml:"ОписаниеТрансформатора"`
 	}
-	file, err := os.Open(fileName)
-	defer file.Close()
-	hlp.Log.Fatal(err)
+	// file, err := os.Open(fileName)
+	// defer file.Close()
+	// hlp.Log.Fatal(err)
+	// xmlData, err := ioutil.ReadAll(file)
+	// hlp.Log.Fatal(err)
 	result := TR{}
-	xmlData, err := ioutil.ReadAll(file)
-	hlp.Log.Fatal(err)
-	err = xml.Unmarshal(xmlData, &result)
+	err = xml.Unmarshal(rawXML, &result)
+	if err != nil {
+		return fmt.Errorf("On read xml %q", err)
+	}
 
 	for _, item := range result.Description {
 		// fmt.Printf("%v - Serial number %v\n", item.Params.Name, item.Number)
 		hlp.Log.Trace("Process transformer %v", item.Params.Name)
 		parseByRule(hlp, item.Params.Name)
 	}
+	return err
 }
