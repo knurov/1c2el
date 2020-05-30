@@ -1,5 +1,5 @@
 database:
-  # dryRun: true
+  dryRun: true
   host: localhost
   port: 5432
   db: electrolab
@@ -24,4 +24,5 @@ rules:
         # value: 10
       - field: type
         position: 2
-    coil: []
+    coils:
+      - 

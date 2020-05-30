@@ -45,7 +45,7 @@ func execQueryByMap(hlp *helper.Helper, selectStatment string, insertStatment st
 
 //SerialNumber add/update SerialNumber
 func SerialNumber(hlp *helper.Helper, values map[string]string) (id uint32) {
-	hlp.Log.Debug("on persisting of serial number %q", values["SerialNumber"])
+	hlp.Log.Debug("on persisting serial number %q", values["SerialNumber"])
 	selectStatment := "select id from sn where fullName = $1 and type = $2"
 	insertStatment := "insert into sn (fullName, type) values($1, $2) RETURNING id "
 	order := []string{"fullName", "type"}
@@ -54,7 +54,16 @@ func SerialNumber(hlp *helper.Helper, values map[string]string) (id uint32) {
 
 //Transformer add/update transformer
 func Transformer(hlp *helper.Helper, values map[string]string) (id uint32) {
-	hlp.Log.Debug("on persisting of serial number %q", values["FullName"])
+	hlp.Log.Debug("on persisting Transformer %q", values["FullName"])
+	selectStatment := "select id from transformer where fullName = $1 and type = $2"
+	insertStatment := "insert into transformer (fullName, type) values($1, $2) RETURNING id "
+	order := []string{"fullName", "type"}
+	return execQueryByMap(hlp, selectStatment, insertStatment, order, values)
+}
+
+//Coil add/update transformer
+func Coil(hlp *helper.Helper, values map[string]string) (id uint32) {
+	hlp.Log.Debug("on persisting coil %q", values["FullName"])
 	selectStatment := "select id from transformer where fullName = $1 and type = $2"
 	insertStatment := "insert into transformer (fullName, type) values($1, $2) RETURNING id "
 	order := []string{"fullName", "type"}

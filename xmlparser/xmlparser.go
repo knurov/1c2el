@@ -19,11 +19,17 @@ func parseByRule(hlp *helper.Helper, fullName string) {
 			result := rule.RegexpCompiled.FindStringSubmatch(fullName)
 
 			transformer := make(map[string]string)
-			for _, transformerField := range rule.Transformer {
-				transformer[transformerField.Field] = result[transformerField.Position]
+			for _, field := range rule.Transformer {
+				transformer[field.Field] = result[field.Position]
 			}
 
-			db.Transformer(hlp, transformer)
+			transformeID := db.Transformer(hlp, transformer)
+			coil := make(map[string]string)
+			coil["transformeID"] = string(transformeID)
+			for _, field := range rule.Coil {
+				transformer[field.Field] = result[field.Position]
+			}
+
 		} else {
 			hlp.Log.Trace("Skip rule %v for %v", rule.Name, fullName)
 		}
@@ -50,11 +56,6 @@ func XMLParse(hlp *helper.Helper, rawXML []byte) (err error) {
 		Transfonmer xml.Name        `xml:"ТР"`
 		Description []TRDescription `xml:"ОписаниеТрансформатора"`
 	}
-	// file, err := os.Open(fileName)
-	// defer file.Close()
-	// hlp.Log.Fatal(err)
-	// xmlData, err := ioutil.ReadAll(file)
-	// hlp.Log.Fatal(err)
 	result := TR{}
 	err = xml.Unmarshal(rawXML, &result)
 	if err != nil {
@@ -62,7 +63,6 @@ func XMLParse(hlp *helper.Helper, rawXML []byte) (err error) {
 	}
 
 	for _, item := range result.Description {
-		// fmt.Printf("%v - Serial number %v\n", item.Params.Name, item.Number)
 		hlp.Log.Trace("Process transformer %v", item.Params.Name)
 		parseByRule(hlp, item.Params.Name)
 	}

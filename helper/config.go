@@ -14,6 +14,15 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// Rule rule of parsing
+type Rule struct {
+	Field          string `yaml:"field"`
+	Position       uint8  `yaml:"position"`
+	Regexp         string `yaml:"regexp"`
+	Value          string `yaml:"value"`
+	RegexpCompiled *regexp.Regexp
+}
+
 // Config - Содержит параметры приложения
 type Config struct {
 	Database struct {
@@ -42,20 +51,8 @@ type Config struct {
 		Name           string `yaml:"name"`
 		Regexp         string `yaml:"regexp"`
 		RegexpCompiled *regexp.Regexp
-		Transformer    []struct {
-			Field          string `yaml:"field"`
-			Position       uint8  `yaml:"position"`
-			Regexp         string `yaml:"regexp"`
-			Value          string `yaml:"value"`
-			RegexpCompiled *regexp.Regexp
-		} `yaml:"transformer"`
-		Coil []struct {
-			Field          string `yaml:"field"`
-			Position       uint8  `yaml:"position"`
-			Regexp         string `yaml:"regexp"`
-			Value          string `yaml:"value"`
-			RegexpCompiled *regexp.Regexp
-		} `yaml:"coil"`
+		Transformer    []Rule `yaml:"transformer"`
+		Coil           []Rule `yaml:"coil"`
 	} `yaml:"rules"`
 
 	Loger *Loger
