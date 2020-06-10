@@ -18,11 +18,37 @@ rules:
   - name: "Общее правило"
     regexp: "(?P<short>.+?)[_\\s](?P<prop>.+?)[-/]"
     transformer:
-      - field: fullName
-        position: 1
-        # regexp: .*
-        # value: 10
-      - field: type
-        position: 2
+      regexp: "(?P<short>.+?)[_\\s](?P<prop>.+?)[-/]"
+      fuelds:
+        - name: FullName
+          rule: 1
+          transformer: 1
+          # position: 1
+          # regexp: .*
+          # value: 10
+        - field: type
+          rule: 2
     coils:
-      - 
+      rule: 1..
+      trans: 2..3
+      position: 1..3
+      separator: "" 
+      regexp: ""
+      tap:
+        separator: "" 
+        regexp: ""        
+        position: 1.. 
+        fields:
+          - name: FullName
+            # rule: 1
+            # transformer: 1
+            # coil: 1
+            tap: 1
+            # position: 1
+            # regexp: .*
+            # value: 10
+
+
+# rule:
+#   coils:
+

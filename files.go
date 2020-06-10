@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"knurov.ru/el/1c2el/helper"
-	"knurov.ru/el/1c2el/xmlparser"
+	"knurov.ru/el/1c2el/parser"
 )
 
 func readFile(hlp *helper.Helper, fileName string) (err error) {
@@ -22,7 +22,7 @@ func readFile(hlp *helper.Helper, fileName string) (err error) {
 	if err != nil {
 		return fmt.Errorf("On read file %q", err)
 	}
-	err = xmlparser.XMLParse(hlp, rawXML)
+	err = parser.XMLParse(hlp, rawXML)
 	return err
 }
 

@@ -14,13 +14,69 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Rule rule of parsing
+//RuleRegexp base rule
+type RuleRegexp struct {
+	Regexp         string         `yaml:"regexp"`
+	RegexpCompiled *regexp.Regexp `yaml:"-"`
+}
+
+//RegexpCompile compile
+func (ruleRegexp *RuleRegexp) RegexpCompile() (err error) {
+	ruleRegexp.RegexpCompiled, err = regexp.Compile(ruleRegexp.Regexp)
+	return err
+}
+
+// FieldRule rule of parsing field
+type FieldRule struct {
+	Name        string `yaml:"name"`
+	Rule        uint8  `yaml:"rule"`
+	Transformer uint8  `yaml:"transformer"`
+	Coil        uint8  `yaml:"coil"`
+	Tap         uint8  `yaml:"tap"`
+	Position    uint8  `yaml:"position"`
+	Value       string `yaml:"value"`
+	RuleRegexp  `yaml:",inline"`
+}
+
+//GroupRange describe group range
+type GroupRange string
+
+//GetRange of groups
+func (groupRange *GroupRange) GetRange() (start uint8, end uint8) {
+	str := fmt.Sprintf("%v", *groupRange)
+	fmt.Sscanf(str, "%d..%d", &start, &end)
+	return start, end
+}
+
+//End of groups
+func (groupRange *GroupRange) End() (end uint8) {
+	return end
+}
+
+//TransformerRule describe transformer
+type TransformerRule struct {
+	RuleRegexp `yaml:",inline"`
+	Fields     []FieldRule `yaml:"fields"`
+}
+
+//DetailRule describe coil or tap
+type DetailRule struct {
+	RuleRegexp `yaml:",inline"`
+	Fields     []FieldRule `yaml:"fields"`
+}
+
+//Rule desribe of rule
 type Rule struct {
-	Field          string `yaml:"field"`
-	Position       uint8  `yaml:"position"`
-	Regexp         string `yaml:"regexp"`
-	Value          string `yaml:"value"`
-	RegexpCompiled *regexp.Regexp
+	Name        string `yaml:"name"`
+	RuleRegexp  `yaml:",inline"`
+	Transformer TransformerRule `yaml:"transformer"`
+	Coils       struct {
+		ParentPosition uint8 `yaml:"parentPosition"`
+		StartPosition  uint8 `yaml:"startPosition"`
+		EndPosition    uint8 `yaml:"endPosition"`
+		RuleRegexp     `yaml:",inline"`
+		Fields         []FieldRule `yaml:"fields"`
+	} `yaml:"coils"`
 }
 
 // Config - Содержит параметры приложения
@@ -47,13 +103,7 @@ type Config struct {
 	} `yaml:"log"`
 
 	//PaseRules rule parsing rule
-	Rules []struct {
-		Name           string `yaml:"name"`
-		Regexp         string `yaml:"regexp"`
-		RegexpCompiled *regexp.Regexp
-		Transformer    []Rule `yaml:"transformer"`
-		Coil           []Rule `yaml:"coil"`
-	} `yaml:"rules"`
+	Rules []Rule `yaml:"правило"`
 
 	Loger *Loger
 }
@@ -112,11 +162,28 @@ func (config *Config) setDefaults() {
 	config.Files.NameTemplate = ".*\\.xml"
 }
 
+func (config *Config) setValuesRules() {
+	var err error
+
+	for ruleIndex, item := range config.Rules {
+		err = config.Rules[ruleIndex].RegexpCompile()
+		config.Loger.Fatal("On Compile Transformer regexp %v", err)
+
+		for coilIndex := range item.Coils.Fields {
+			err = config.Rules[ruleIndex].Coils.Fields[coilIndex].RegexpCompile()
+			config.Loger.Fatal("On Compile Coils regexp %v", err)
+		}
+
+	}
+
+}
+
 func (config *Config) setValues(dryRun bool) {
 	var err error
 	config.Database.DryRun = config.Database.DryRun || dryRun
 	config.Files.NameRegexp, err = regexp.Compile(config.Files.NameTemplate)
 	config.Loger.Fatal("On Compile FIleName regexp %v", err)
+
 	level, err := logrus.ParseLevel(config.Log.Level)
 	config.Loger.Fatal("On parse Log Level %v", err)
 	config.Loger.Init(config.Log.File, level)
@@ -133,10 +200,7 @@ func (config *Config) setValues(dryRun bool) {
 	config.Database.Pool, err = pgxpool.ConnectConfig(context.Background(), dbConfig)
 	config.Loger.Fatal("On connect to db - %v", err)
 
-	for inex, item := range config.Rules {
-		config.Rules[inex].RegexpCompiled, err = regexp.Compile(item.Regexp)
-		config.Loger.Fatal("On Compile Transformer regexp %v", err)
-	}
+	config.setValuesRules()
 }
 
 //init -  КОнструктор

@@ -55,7 +55,7 @@ func SerialNumber(hlp *helper.Helper, values map[string]string) (id uint32) {
 //Transformer add/update transformer
 func Transformer(hlp *helper.Helper, values map[string]string) (id uint32) {
 	hlp.Log.Debug("on persisting Transformer %q", values["FullName"])
-	selectStatment := "select id from transformer where fullName = $1 and type = $2"
+	selectStatment := "select id from transformer where FullName = $1 and type = $2"
 	insertStatment := "insert into transformer (fullName, type) values($1, $2) RETURNING id "
 	order := []string{"fullName", "type"}
 	return execQueryByMap(hlp, selectStatment, insertStatment, order, values)
