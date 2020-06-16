@@ -19,18 +19,18 @@ rules:
     regexp: "(?P<short>.+?)[_\\s](?P<prop>.+?)[-/]"
     transformer:
       regexp: "(?P<short>.+?)[_\\s](?P<prop>.+?)[-/]"
-      fuelds:
+      fields:
         - name: FullName
-          rule: 1
+          # rule: 1
           transformer: 1
           # position: 1
           # regexp: .*
           # value: 10
-        - field: type
+        - name: type
           rule: 2
     coils:
       rule: 1..
-      trans: 2..3
+      transformer: 2..3
       position: 1..3
       separator: "" 
       regexp: ""

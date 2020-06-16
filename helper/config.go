@@ -43,14 +43,9 @@ type GroupRange string
 
 //GetRange of groups
 func (groupRange *GroupRange) GetRange() (start uint8, end uint8) {
-	str := fmt.Sprintf("%v", *groupRange)
-	fmt.Sscanf(str, "%d..%d", &start, &end)
+	// str := fmt.Sprintf("%v", *groupRange)
+	fmt.Sscanf(string(*groupRange), "%d..%d", &start, &end)
 	return start, end
-}
-
-//End of groups
-func (groupRange *GroupRange) End() (end uint8) {
-	return end
 }
 
 //TransformerRule describe transformer
@@ -65,17 +60,24 @@ type DetailRule struct {
 	Fields     []FieldRule `yaml:"fields"`
 }
 
+//TapRule Tap Rule
+type TapRule struct {
+	RuleRegexp `yaml:",inline"`
+	Fields     []FieldRule `yaml:"fields"`
+}
+
 //Rule desribe of rule
 type Rule struct {
 	Name        string `yaml:"name"`
 	RuleRegexp  `yaml:",inline"`
 	Transformer TransformerRule `yaml:"transformer"`
 	Coils       struct {
-		ParentPosition uint8 `yaml:"parentPosition"`
-		StartPosition  uint8 `yaml:"startPosition"`
-		EndPosition    uint8 `yaml:"endPosition"`
-		RuleRegexp     `yaml:",inline"`
-		Fields         []FieldRule `yaml:"fields"`
+		Rule        GroupRange `yaml:"rule"`
+		Transformer GroupRange `yaml:"transformer"`
+		Position    GroupRange `yaml:"position"`
+		Separator   string     `yaml:"separator"`
+		RuleRegexp  `yaml:",inline"`
+		Taps        []TapRule `yaml:"taps"`
 	} `yaml:"coils"`
 }
 
@@ -103,7 +105,7 @@ type Config struct {
 	} `yaml:"log"`
 
 	//PaseRules rule parsing rule
-	Rules []Rule `yaml:"правило"`
+	Rules []Rule `yaml:"rules"`
 
 	Loger *Loger
 }
@@ -165,13 +167,28 @@ func (config *Config) setDefaults() {
 func (config *Config) setValuesRules() {
 	var err error
 
-	for ruleIndex, item := range config.Rules {
-		err = config.Rules[ruleIndex].RegexpCompile()
+	for ruleIndex := range config.Rules {
+		rule := &config.Rules[ruleIndex]
+		err = rule.RegexpCompile()
+		config.Loger.Fatal("On Compile Rule regexp %v", err)
+
+		err = rule.Transformer.RegexpCompile()
 		config.Loger.Fatal("On Compile Transformer regexp %v", err)
 
-		for coilIndex := range item.Coils.Fields {
-			err = config.Rules[ruleIndex].Coils.Fields[coilIndex].RegexpCompile()
+		for transformerFieldIndex := range rule.Transformer.Fields {
+			err = rule.Transformer.Fields[transformerFieldIndex].RegexpCompile()
+			config.Loger.Fatal("On Compile Transformer fields regexp %v", err)
+		}
+
+		for tapIndex := range rule.Coils.Taps {
+			tap := &rule.Coils.Taps[tapIndex]
+			err = tap.RegexpCompile()
 			config.Loger.Fatal("On Compile Coils regexp %v", err)
+			for tapFieldIndex := range tap.Fields {
+				err = tap.Fields[tapFieldIndex].RegexpCompile()
+				config.Loger.Fatal("On Compile Coils regexp %v", err)
+			}
+
 		}
 
 	}
@@ -213,6 +230,9 @@ func (config *Config) init(log *Loger, fileName string, dryRun bool) {
 	err = yaml.Unmarshal(configFile, &config)
 	config.Loger.Fatal("On parse "+fileName+" v%", err)
 	config.setValues(dryRun)
+	if config.Database.DryRun {
+		fmt.Printf("%+v\n", config)
+	}
 }
 
 //Destroy Destroyng config (closing opened files, databases and etc)

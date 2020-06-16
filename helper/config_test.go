@@ -1,6 +1,8 @@
 package helper
 
-import "testing"
+import (
+	"testing"
+)
 
 type rangeFixture struct {
 	groupRange GroupRange
@@ -10,11 +12,14 @@ type rangeFixture struct {
 
 var testRange = []rangeFixture{
 	{"1..2", 1, 2},
+	{"3..5", 3, 5},
+	{"6..", 6, 0},
 }
 
 //TestGetRange test for GetRange
-func TestGetRange(t testing.T) {
+func TestGetRange(t *testing.T) {
 	for _, fixture := range testRange {
+		t.Logf("Testing %v", fixture.groupRange)
 		start, end := fixture.groupRange.GetRange()
 		if start != fixture.start {
 			t.Error("for", fixture.groupRange, "expected start", fixture.start, "got", start)
