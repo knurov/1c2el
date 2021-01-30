@@ -16,18 +16,19 @@ log:
 # https://yourbasic.org/golang/regexp-cheat-sheet/
 rules:
   - name: "Общее правило"
-    regexp: "(?P<short>.+?)[_\\s](?P<prop>.+?)[-/]"
+    regexp: "(?:(ТЛО-10)_([^/]*)|/([^/]*))"
     transformer:
-      regexp: "(?P<short>.+?)[_\\s](?P<prop>.+?)[-/]"
+      regexp: "(?:(ТЛО-10)_|/|([^/]*))"
+      rule: 2
       fields:
         - name: FullName
-          # rule: 1
-          transformer: 1
+          rule: 1
+          # transformer: 1
           # position: 1
           # regexp: .*
           # value: 10
         - name: type
-          rule: 2
+          transformer: 2
     coils:
       rule: 1..
       transformer: 2..3
@@ -37,7 +38,7 @@ rules:
       tap:
         separator: "" 
         regexp: ""        
-        position: 1.. 
+        position: 1..-1 
         fields:
           - name: FullName
             # rule: 1

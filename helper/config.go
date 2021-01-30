@@ -26,26 +26,84 @@ func (ruleRegexp *RuleRegexp) RegexpCompile() (err error) {
 	return err
 }
 
+//FindAllGroup retur group array
+func (ruleRegexp *RuleRegexp) FindAllGroup(value string) (result []string) {
+	submatch := ruleRegexp.RegexpCompiled.FindAllStringSubmatch(value, -1)
+	for _, match := range submatch {
+		for _, group := range match[1:] {
+			if group != "" {
+				result = append(result, group)
+			}
+		}
+	}
+	return result
+}
+
 // FieldRule rule of parsing field
 type FieldRule struct {
-	Name        string `yaml:"name"`
 	Rule        uint8  `yaml:"rule"`
 	Transformer uint8  `yaml:"transformer"`
 	Coil        uint8  `yaml:"coil"`
 	Tap         uint8  `yaml:"tap"`
+	Name        string `yaml:"name"`
 	Position    uint8  `yaml:"position"`
 	Value       string `yaml:"value"`
 	RuleRegexp  `yaml:",inline"`
 }
 
+//GetFieldMap get parsed result
+func (field *FieldRule) GetFieldMap(rule []string, transformer []string, coil []string, tap []string) (name string, value string, err error) {
+
+	// var allGroup string
+
+	if field.Rule > 0 {
+		return field.Name, rule[field.Rule-1], nil
+	} else if field.Transformer > 0 {
+		if len(transformer) < int(field.Transformer) {
+			return field.Name, "", fmt.Errorf("Count of groups '%v' smallest than index of field '%v'", len(transformer), field.Transformer)
+		} else {
+			return field.Name, transformer[field.Transformer-1], nil
+		}
+	} else if field.Coil > 0 {
+		if len(coil) < int(field.Coil) {
+			return field.Name, "", fmt.Errorf("Count of groups '%v' smallest than index of field '%v'", len(coil), field.Coil)
+		} else {
+			return field.Name, coil[field.Coil-1], nil
+		}
+	} else if field.Tap > 0 {
+		if len(coil) < int(field.Coil) {
+			return field.Name, "", fmt.Errorf("Count of groups '%v' smallest than index of field '%v'", len(coil), field.Coil)
+		} else {
+			return field.Name, coil[field.Coil-1], nil
+		}
+	} else if field.Value != "" {
+		return field.Name, field.Value, nil
+	}
+	return "field.Value", "", fmt.Errorf("No match value by rule")
+
+}
+
 //GroupRange describe group range
 type GroupRange string
 
-//GetRange of groups
-func (groupRange *GroupRange) GetRange() (start uint8, end uint8) {
-	// str := fmt.Sprintf("%v", *groupRange)
+//GetIndexGap of groups
+func (groupRange *GroupRange) GetIndexGap() (start int8, end int8) {
 	fmt.Sscanf(string(*groupRange), "%d..%d", &start, &end)
 	return start, end
+}
+
+//GetRange of groups
+func (groupRange *GroupRange) GetRange(groups []string) (items []string) {
+	from, to := groupRange.GetIndexGap()
+	for index, value := range groups {
+		if index > int(to) && to > -1 || index > len(groups)-int(to) {
+			break
+		}
+		if index > int(from) {
+			items[len(items)] = value
+		}
+	}
+	return items
 }
 
 //TransformerRule describe transformer
@@ -54,16 +112,21 @@ type TransformerRule struct {
 	Fields     []FieldRule `yaml:"fields"`
 }
 
-//DetailRule describe coil or tap
-type DetailRule struct {
-	RuleRegexp `yaml:",inline"`
-	Fields     []FieldRule `yaml:"fields"`
-}
+// //DetailRule describe coil or tap
+// type DetailRule struct {
+// 	RuleRegexp `yaml:",inline"`
+// 	Fields     []FieldRule `yaml:"fields"`
+// }
 
 //TapRule Tap Rule
 type TapRule struct {
-	RuleRegexp `yaml:",inline"`
-	Fields     []FieldRule `yaml:"fields"`
+	Rule        GroupRange `yaml:"rule"`
+	Transformer GroupRange `yaml:"transformer"`
+	Coil        GroupRange `yaml:"coil"`
+	Position    GroupRange `yaml:"position"`
+	Separator   string     `yaml:"separator"`
+	RuleRegexp  `yaml:",inline"`
+	Fields      []FieldRule `yaml:"fields"`
 }
 
 //Rule desribe of rule

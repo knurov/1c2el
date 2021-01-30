@@ -7,31 +7,53 @@ import (
 
 func parseByRule(hlp *helper.Helper, fullName string, rule *helper.Rule) {
 	hlp.Log.Trace("Use rule %v", rule.Name)
+
+	// Поля трансформатора #####################
+	// Определение источников для полей трансформатора #############
 	transformer := make(map[string]string)
-	ruleResult := rule.RegexpCompiled.FindStringSubmatch(fullName)
+	ruleResult := rule.FindAllGroup(fullName)
 	var transformerResult []string
 	if rule.Transformer.RegexpCompiled != nil {
-		transformerResult = rule.Transformer.RegexpCompiled.FindStringSubmatch(fullName)
+		transformerResult = rule.Transformer.FindAllGroup(fullName)
 	}
+	// ############# Определение источников для полей трансформатора
 
+	// Цикл сбора полей трансформатора #############
 	for _, field := range rule.Transformer.Fields {
-		if field.Rule != 0 {
-			transformer[field.Name] = ruleResult[field.Rule]
-		} else if field.Transformer != 0 {
-			if len(transformerResult) < int(field.Transformer) {
-				hlp.Log.Error("Count of groups '%v' smallest than index of field '%v'", len(transformerResult), field.Transformer)
-			} else {
-				transformer[field.Name] = transformerResult[field.Transformer]
-			}
-		}
+		name, value, err := field.GetFieldMap(ruleResult, transformerResult, nil, nil)
+		hlp.Log.Error(err)
+		transformer[name] = value
 	}
+	// ############# Цикл сбора полей трансформатора
+	// ##################### Поля трансформатора
 
+	// Поля отпаек #####################
+	//  Цикл обмотк ################
+	coils := rule.Coils.Rule.GetRange(ruleResult)
+
+	// Rule        GroupRange `yaml:"rule"`
+	// Transformer GroupRange `yaml:"transformer"`
+	// Position    GroupRange `yaml:"position"`
+
+	// Separator   string     `yaml:"separator"`
+	// RuleRegexp  `yaml:",inline"`
+	// Taps        []TapRule `yaml:"taps"`
+
+	for index, value := range coils {
+		taps := rule.Coils.Taps.coil.GetRange(value)
+
+		//  Цикл отпаек ################
+
+		// ################# Цикл отпаек
+		// ################# Цикл обмотк
+	}
+	// ##################### Поля отпаек
+
+	// вставка данных в BD #################
 	transformeID := db.Transformer(hlp, transformer)
 	coil := make(map[string]string)
 	coil["transformeID"] = string(transformeID)
-	// for _, field := range rule.Coils.Fields {
-	// 	transformer[field.Name] = ruleResult[field.Position]
-	// }
+	// ################# вставка данных в BD
 
 }
 
